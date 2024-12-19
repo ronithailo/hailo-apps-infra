@@ -5,6 +5,7 @@ import os
 import gi
 import threading
 import cv2
+from picamera2 import Picamera2
 gi.require_version('Gst', '1.0')
 from gi.repository import Gst, GLib, GObject
 from hailo_apps_infra.gstreamer_helper_pipelines import get_source_type
