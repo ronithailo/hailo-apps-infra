@@ -40,14 +40,14 @@ std::vector<std::string> LANDMARKS_10g {"scrfd_10g/conv43",
                                         "scrfd_10g/conv51",
                                         "scrfd_10g/conv58"};
 
-std::vector<std::string> BOXES_2_5g {"scrfd_2_5g/conv41",
-                                     "scrfd_2_5g/conv49",
+std::vector<std::string> BOXES_2_5g {"scrfd_2_5g/conv43",
+                                     "scrfd_2_5g/conv50",
                                      "scrfd_2_5g/conv56"};
-std::vector<std::string> CLASSES_2_5g {"scrfd_2_5g/conv46",
-                                       "scrfd_2_5g/conv52",
-                                       "scrfd_2_5g/conv51"};
-std::vector<std::string> LANDMARKS_2_5g {"scrfd_2_5g/conv42",
-                                         "scrfd_2_5g/conv50",
+std::vector<std::string> CLASSES_2_5g {"scrfd_2_5g/conv42",
+                                       "scrfd_2_5g/conv49",
+                                       "scrfd_2_5g/conv55"};
+std::vector<std::string> LANDMARKS_2_5g {"scrfd_2_5g/conv44",
+                                         "scrfd_2_5g/conv51",
                                          "scrfd_2_5g/conv57"};
 
 std::vector<std::string> BOXES;

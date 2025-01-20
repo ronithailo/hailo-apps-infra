@@ -36,22 +36,15 @@ from hailo_apps_infra.gstreamer_app import (
 # -----------------------------------------------------------------------------------------------
 
 # This class inherits from the hailo_rpi_common.GStreamerApp class
-class GStreamerDetectionApp(GStreamerApp):
+class GStreamerFaceRecognitionApp(GStreamerApp):
     def __init__(self, app_callback, user_data):
         parser = get_default_parser()
-        parser.add_argument(
-            "--labels-json",
-            default=None,
-            help="Path to costume labels JSON file",
-        )
         args = parser.parse_args()
         # Call the parent class constructor
         super().__init__(args, user_data)
         # Additional initialization code can be added here
         # Set Hailo parameters these parameters should be set based on the model used
         self.batch_size = 2
-        nms_score_threshold = 0.3
-        nms_iou_threshold = 0.45
 
 
         # Determine the architecture if not specified
@@ -65,19 +58,18 @@ class GStreamerDetectionApp(GStreamerApp):
             self.arch = args.arch
 
 
-        if args.hef_path is not None:
-            self.hef_path = args.hef_path
         # Set the HEF file path based on the arch
-        elif self.arch == "hailo8":
-            self.hef_path_detection = os.path.join(self.current_path, '../scrfd_10g.hef')
-            self.hef_path_recognition = os.path.join(self.current_path, '../arcface_mobilefacenet.hef')
+        if self.arch == "hailo8":
+            self.hef_path_detection = os.path.join(self.current_path, '../resources/scrfd_10g.hef')
+            self.hef_path_recognition = os.path.join(self.current_path, '../resources/arcface_mobilefacenet.hef')
             self.detection_func = "scrfd_10g"
             
         else:  # hailo8l
-            self.hef_path_detection = os.path.join(self.current_path, '../scrfd_2.5g.hef')
-            self.hef_path_recognition = os.path.join(self.current_path, '../arcface_mobilefacenet.hef')
-            self.detection_func = "scrfd_2.5g"
-            
+            self.hef_path_detection = os.path.join(self.current_path, '../resources/scrfd_2.5g.hef')
+            self.hef_path_recognition = os.path.join(self.current_path, '../resources/arcface_mobilefacenet_h8l.hef')
+            self.detection_func = "scrfd_2_5g"
+        if args.hef_path is not None:
+            self.hef_path_recognition = args.hef_path
 
         # Set the post-processing shared object file
         self.post_process_so_scrfd = os.path.join(self.current_path, '../resources/libscrfd.so')
@@ -85,24 +77,17 @@ class GStreamerDetectionApp(GStreamerApp):
         self.post_process_so_face_align = os.path.join(self.current_path, '../resources/libvms_face_align.so ')
         self.post_process_so_cropper = os.path.join(self.current_path, '/usr/lib/aarch64-linux-gnu/hailo/tappas/post_processes/cropping_algorithms/libvms_croppers.so')
         
-        self.post_function_name = "filter_letterbox"
-        # User-defined label JSON file
-        self.labels_json = args.labels_json
 
         self.app_callback = app_callback
 
-        self.thresholds_str = (
-            f"nms-score-threshold={nms_score_threshold} "
-            f"nms-iou-threshold={nms_iou_threshold} "
-            f"output-format-type=HAILO_FORMAT_TYPE_FLOAT32"
-        )
-
         # Set the process title
-        setproctitle.setproctitle("Hailo Detection App")
+        setproctitle.setproctitle("Hailo Face Recognition App")
 
         self.create_pipeline()
 
     def get_pipeline_string(self):
+        if(self.video_source.endswith('example.mp4')):
+            self.video_source = os.path.join(self.current_path, '../resources/face_recognition.mp4')
         source_pipeline = SOURCE_PIPELINE(self.video_source, self.video_width, self.video_height)
         
         detection_pipeline = INFERENCE_PIPELINE(
@@ -167,5 +152,5 @@ if __name__ == "__main__":
     # Create an instance of the user app callback class
     user_data = app_callback_class()
     app_callback = dummy_callback
-    app = GStreamerDetectionApp(app_callback, user_data)
+    app = GStreamerFaceRecognitionApp(app_callback, user_data)
     app.run()
