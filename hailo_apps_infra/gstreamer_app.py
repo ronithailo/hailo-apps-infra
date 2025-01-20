@@ -157,6 +157,7 @@ class GStreamerApp:
                 print("Video rewound successfully. Restarting playback...")
             else:
                 print("Error rewinding the video.")
+                self.shutdown()
         else:
             self.shutdown()
 
