@@ -61,18 +61,18 @@ class GStreamerInstanceSegmentationApp(GStreamerApp):
         if args.hef_path:
             self.hef_path = args.hef_path
         elif self.arch == "hailo8":
-            self.hef_path = os.path.join(self.current_path, '../resources/yolov5m_seg.hef')
+            self.hef_path = os.path.join(self.resources_path, 'yolov5m_seg.hef')
         else:  # hailo8l
-            self.hef_path = os.path.join(self.current_path, '../resources/yolov5n_seg_h8l_mz.hef')
+            self.hef_path = os.path.join(self.resources_path, 'yolov5n_seg_h8l_mz.hef')
 
         # self.default_post_process_so = os.path.join(self.postprocess_dir, 'libyolov5seg_post.so')
         if 'yolov5m_seg' in self.hef_path:
-            self.config_file = os.path.join(self.current_path, '../resources/yolov5m_seg.json')
+            self.config_file = os.path.join(self.resources_path, 'yolov5m_seg.json')
         elif 'yolov5n_seg' in self.hef_path:
-            self.config_file = os.path.join(self.current_path, '../resources/yolov5n_seg.json')
+            self.config_file = os.path.join(self.resources_path, 'yolov5n_seg.json')
         else:
             raise ValueError("HEF version not supported, you will need to provide a config file")
-        self.default_post_process_so = os.path.join(self.current_path, '../resources/libyolov5seg_postprocess.so')
+        self.default_post_process_so = os.path.join(self.resources_path, 'libyolov5seg_postprocess.so')
         self.post_function_name = "filter_letterbox"
         self.app_callback = app_callback
 

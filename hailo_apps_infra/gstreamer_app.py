@@ -82,6 +82,7 @@ class GStreamerApp:
             print("TAPPAS_POST_PROC_DIR environment variable is not set. Please set it to by sourcing setup_env.sh")
             exit(1)
         self.current_path = os.path.dirname(os.path.abspath(__file__))
+        self.resources_path = os.path.join(self.current_path, '../resources/')
         self.postprocess_dir = tappas_post_process_dir
         self.video_source = self.options_menu.input
         self.source_type = get_source_type(self.video_source)

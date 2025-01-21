@@ -63,14 +63,14 @@ class GStreamerPoseEstimationApp(GStreamerApp):
         if args.hef_path:
             self.hef_path = args.hef_path
         elif self.arch == "hailo8":
-            self.hef_path = os.path.join(self.current_path, '../resources/yolov8m_pose.hef')
+            self.hef_path = os.path.join(self.resources_path, 'yolov8m_pose.hef')
         else:  # hailo8l
-            self.hef_path = os.path.join(self.current_path, '../resources/yolov8s_pose_h8l.hef')
+            self.hef_path = os.path.join(self.resources_path, 'yolov8s_pose_h8l.hef')
 
         self.app_callback = app_callback
 
         # Set the post-processing shared object file
-        self.post_process_so = os.path.join(self.current_path, '../resources/libyolov8pose_postprocess.so')
+        self.post_process_so = os.path.join(self.resources_path, 'libyolov8pose_postprocess.so')
         self.post_process_function = "filter_letterbox"
 
 
