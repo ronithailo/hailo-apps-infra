@@ -22,6 +22,7 @@ def test_check_required_files():
         'compile_postprocess.sh',
         'requirements.txt',
         'hailo_apps_infra/detection_pipeline.py',
+        'hailo_apps_infra/face_recognition_pipeline.py',
         'hailo_apps_infra/pose_estimation_pipeline.py',
         'hailo_apps_infra/instance_segmentation_pipeline.py',
         'hailo_apps_infra/hailo_rpi_common.py',

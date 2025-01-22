@@ -120,8 +120,6 @@ class GStreamerFaceRecognitionApp(GStreamerApp):
             self.hef_path_detection = os.path.join(self.resources_path, 'scrfd_2.5g.hef')
             self.hef_path_recognition = os.path.join(self.resources_path, 'arcface_mobilefacenet_h8l.hef')
 
-        if args.hef_path is not None:
-            self.hef_path_recognition = args.hef_path
         if "scrfd_10g" in self.hef_path_detection:
             self.detection_func = "scrfd_10g"
         elif "scrfd_2.5g" in self.hef_path_detection:
