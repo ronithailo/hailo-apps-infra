@@ -10,6 +10,8 @@ import cv2
 import time
 import hailo
 import json
+import subprocess
+import sys
 import gi
 gi.require_version('Gst', '1.0')
 from gi.repository import Gst, GLib
@@ -74,7 +76,11 @@ class GStreamerFaceRecognitionApp(GStreamerApp):
         else:
             self.arch = args.arch
 
-        self.face_recognition_path = os.path.dirname(os.path.abspath(__file__))
+        self.face_recognition_path_org = os.path.dirname(os.path.abspath(__file__))
+        self.face_recognition_path = os.path.dirname(sys.argv[0])
+        self.face_recognition_resources_path = os.path.join(self.face_recognition_path, 'resources')
+        self.check_resources_dir()
+        
         
         # Set the HEF file path based on the arch
         if self.arch == "hailo8":
@@ -98,11 +104,11 @@ class GStreamerFaceRecognitionApp(GStreamerApp):
         if args.embeddings_path:
             self.gallery_path = args.embeddings_path
         else:
-            self.gallery_path = os.path.join(self.face_recognition_path,'face_recognition_local_gallery_rgba.json')
+            self.gallery_path = os.path.join(self.face_recognition_resources_path,'face_recognition_local_gallery_rgba.json')
         if args.faces_path:
             self.faces_dir = args.faces_path
         else:
-            self.faces_dir = os.path.join(self.face_recognition_path,'faces/')
+            self.faces_dir = os.path.join(self.face_recognition_resources_path,'faces/')
             
         
 
@@ -266,7 +272,25 @@ class GStreamerFaceRecognitionApp(GStreamerApp):
                 os.remove(self.gallery_path)
         except Exception as e:
             print(f"An unexpected error occurred: {e}")
+    
+    def check_resources_dir(self):
+        dir = self.face_recognition_resources_path
+        if not os.path.exists(dir):
+            print(f"Resources directory not found: {dir}")
+            print("Running ./download_resources...")
+            result = subprocess.run([f"{self.face_recognition_path_org}/download_resources.sh {dir}"], shell=True)
+            if result.returncode != 0:
+                print("Error: Failed to run ./download_resources", file=sys.stderr)
+                sys.exit(1)
+        else:
+            print(f"Resources directory exists: {dir}")
 
+
+    def run(self):
+        if not self.args.training_mode:
+            super().run()
+        else:
+            self.run_training()
 
                 
 if __name__ == "__main__":
@@ -274,9 +298,6 @@ if __name__ == "__main__":
     user_data = app_callback_class()
     app_callback = dummy_callback
     app = GStreamerFaceRecognitionApp(app_callback, user_data)
-
-    if not app.args.training_mode:
-        app.run()
-    else:
-        app.run_training()
+    app.run()
+    
             
