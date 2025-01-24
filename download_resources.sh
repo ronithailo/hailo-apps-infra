@@ -4,10 +4,6 @@
 RESOURCE_DIR="./resources"
 mkdir -p "$RESOURCE_DIR"
 
-download_images() {
-  wget -nc "$1" -P ./resources/faces/
-}
-
 # Define download function with file existence check and retries
 download_model() {
   file_name=$(basename "$1")
@@ -45,21 +41,8 @@ VIDEOS=(
 )
 
 
-IMAGES=(
-  "https://hailo-csdata.s3.eu-west-2.amazonaws.com/resources/images/faces/alon.png"
-  "https://hailo-csdata.s3.eu-west-2.amazonaws.com/resources/images/faces/itai.png"
-  "https://hailo-csdata.s3.eu-west-2.amazonaws.com/resources/images/faces/avishay.png"
-  "https://hailo-csdata.s3.eu-west-2.amazonaws.com/resources/images/faces/gal.png"
-  "https://hailo-csdata.s3.eu-west-2.amazonaws.com/resources/images/faces/katia.png"
-  "https://hailo-csdata.s3.eu-west-2.amazonaws.com/resources/images/faces/reut.png"
-  "https://hailo-csdata.s3.eu-west-2.amazonaws.com/resources/images/faces/roi.png"
-  "https://hailo-csdata.s3.eu-west-2.amazonaws.com/resources/images/faces/shir.png"
-  "https://hailo-csdata.s3.eu-west-2.amazonaws.com/resources/images/faces/yuval.png"
-)
-
 CONFIGS=(
   "https://hailo-csdata.s3.eu-west-2.amazonaws.com/resources/configs/scrfd.json"
-  "https://hailo-csdata.s3.eu-west-2.amazonaws.com/resources/configs/face_recognition_local_gallery_rgba.json"
 )
 # If --all flag is provided, download everything in parallel
 if [ "$1" == "--all" ]; then
@@ -85,11 +68,6 @@ fi
 for url in "${VIDEOS[@]}" "${CONFIGS[@]}"; do
   download_model "$url" &
 done
-
-for url in "${IMAGES[@]}" ; do
-  download_images "$url"
-done
-
 
 # Wait for all background downloads to complete
 wait

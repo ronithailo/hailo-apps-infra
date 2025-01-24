@@ -45,6 +45,7 @@ def SOURCE_PIPELINE(video_source, video_width=640, video_height=640, video_forma
     Returns:
         str: A string representing the GStreamer pipeline for the video source.
     """
+    assert video_source is not None, "Error: Please provide a valid video source."
     source_type = get_source_type(video_source)
 
     if source_type == 'usb':

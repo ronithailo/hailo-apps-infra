@@ -92,6 +92,8 @@ class GStreamerDetectionApp(GStreamerApp):
         self.create_pipeline()
 
     def get_pipeline_string(self):
+        if not self.video_source:
+            self.video_source = self.default_video
         source_pipeline = SOURCE_PIPELINE(self.video_source, self.video_width, self.video_height)
         detection_pipeline = INFERENCE_PIPELINE(
             hef_path=self.hef_path,

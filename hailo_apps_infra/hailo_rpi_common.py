@@ -67,12 +67,10 @@ def get_caps_from_pad(pad: Gst.Pad):
 def get_default_parser():
     parser = argparse.ArgumentParser(description="Hailo App Help")
     current_path = os.path.dirname(os.path.abspath(__file__))
-    default_video_source = os.path.join(current_path, '../resources/example.mp4')
     parser.add_argument(
-        "--input", "-i", type=str, default=default_video_source,
+        "--input", "-i", type=str, 
         help="Input source. Can be a file, USB (webcam), RPi camera (CSI camera module) or ximage. \
-        For RPi camera use '-i rpi' \
-        Defaults to example video resources/example.mp4"
+        For RPi camera use '-i rpi' "
     )
     parser.add_argument("--use-frame", "-u", action="store_true", help="Use frame from the callback function")
     parser.add_argument("--show-fps", "-f", action="store_true", help="Print FPS on sink")

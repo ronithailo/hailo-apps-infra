@@ -84,8 +84,12 @@ class GStreamerApp:
         self.current_path = os.path.dirname(os.path.abspath(__file__))
         self.resources_path = os.path.join(self.current_path, '../resources/')
         self.postprocess_dir = tappas_post_process_dir
+        self.default_video = os.path.join(self.resources_path, 'example.mp4')
         self.video_source = self.options_menu.input
-        self.source_type = get_source_type(self.video_source)
+        if self.video_source:
+            self.source_type = get_source_type(self.video_source)
+        else:
+            self.source_type = 'file'
         self.user_data = user_data
         self.video_sink = "autovideosink"
         self.pipeline = None

@@ -10,6 +10,9 @@ import cv2
 import time
 import hailo
 import json
+import gi
+gi.require_version('Gst', '1.0')
+from gi.repository import Gst, GLib
 from hailo_apps_infra.hailo_rpi_common import (
     get_default_parser,
     detect_hailo_arch,
@@ -30,53 +33,6 @@ from hailo_apps_infra.gstreamer_app import (
     dummy_callback
 )
 
-CURR = ""
-
-def get_files_in_directory(directory):
-    """
-    Get all files from the specified directory (non-recursive).
-
-    :param directory: Path to the directory to search.
-    :return: List of file paths.
-    """
-    try:
-        # List all files in the directory
-        files = [file for file in os.listdir(directory) if os.path.isfile(os.path.join(directory, file))]
-        return files
-    except FileNotFoundError:
-        print(f"Error: Directory '{directory}' not found.")
-        return []
-    except PermissionError:
-        print(f"Error: Permission denied for directory '{directory}'.")
-        return []
-
-
-def remove_extension(filename):
-    """
-    Remove the extension from a file name.
-
-    :param filename: The file name with extension.
-    :return: The file name without the extension.
-    """
-    return os.path.splitext(filename)[0]
-import gi
-gi.require_version('Gst', '1.0')
-from gi.repository import Gst, GLib
-
-def delete_file_if_exists(file_path):
-    """
-    Delete a file if it exists.
-
-    :param file_path: Path to the file to delete.
-    """
-    try:
-        if os.path.exists(file_path):
-            os.remove(file_path)
-    except Exception as e:
-        print(f"An unexpected error occurred: {e}")
-
-
-
 # -----------------------------------------------------------------------------------------------
 # User Gstreamer Application
 # -----------------------------------------------------------------------------------------------
@@ -86,10 +42,18 @@ class GStreamerFaceRecognitionApp(GStreamerApp):
     def __init__(self, app_callback, user_data):
         parser = get_default_parser()
         parser.add_argument(
-            "--save-faces",
+            "--training-mode",
             default=False,
             action="store_true",
             help="For saving faces add this argument",
+        )
+        parser.add_argument(
+            "--faces-path",
+            help="Path to faces directory",
+        )
+        parser.add_argument(
+            "--embeddings-path",
+            help="Path to gallery embeddings path",
         )
         args = parser.parse_args()
         self.args = args
@@ -97,7 +61,7 @@ class GStreamerFaceRecognitionApp(GStreamerApp):
         super().__init__(args, user_data)
         # Additional initialization code can be added here
         # Set Hailo parameters these parameters should be set based on the model used
-        self.batch_size = 2
+        self.batch_size = 1
 
 
         # Determine the architecture if not specified
@@ -110,15 +74,16 @@ class GStreamerFaceRecognitionApp(GStreamerApp):
         else:
             self.arch = args.arch
 
-
+        self.face_recognition_path = os.path.dirname(os.path.abspath(__file__))
+        
         # Set the HEF file path based on the arch
         if self.arch == "hailo8":
-            self.hef_path_detection = os.path.join(self.resources_path, 'scrfd_10g.hef')
-            self.hef_path_recognition = os.path.join(self.resources_path, 'arcface_mobilefacenet.hef')
+            self.hef_path_detection = os.path.join(self.resources_path, 'hefs/hailo8/scrfd_10g.hef')
+            self.hef_path_recognition = os.path.join(self.resources_path, 'hefs/hailo8/arcface_mobilefacenet.hef')
             
         else:  # hailo8l
-            self.hef_path_detection = os.path.join(self.resources_path, 'scrfd_2.5g.hef')
-            self.hef_path_recognition = os.path.join(self.resources_path, 'arcface_mobilefacenet_h8l.hef')
+            self.hef_path_detection = os.path.join(self.resources_path, 'hefs/hailo8l/scrfd_2.5g.hef')
+            self.hef_path_recognition = os.path.join(self.resources_path, 'hefs/hailo8l/arcface_mobilefacenet_h8l.hef')
 
         if "scrfd_10g" in self.hef_path_detection:
             self.detection_func = "scrfd_10g"
@@ -129,9 +94,16 @@ class GStreamerFaceRecognitionApp(GStreamerApp):
         self.post_process_so_scrfd = os.path.join(self.resources_path, 'libscrfd.so')
         self.post_process_so_face_recognition = os.path.join(self.resources_path, 'libface_recognition_post.so')
         self.post_process_so_face_align = os.path.join(self.resources_path, 'libvms_face_align.so ')
-        self.post_process_so_cropper = '/usr/lib/aarch64-linux-gnu/hailo/tappas/post_processes/cropping_algorithms/libvms_croppers.so'
-        self.gallery_path = os.path.join(self.resources_path,'face_recognition_local_gallery_rgba.json')
-        self.faces_dir = os.path.join(self.resources_path,'faces/')
+        self.post_process_so_cropper = os.path.join(self.postprocess_dir,'cropping_algorithms/libvms_croppers.so')
+        if args.embeddings_path:
+            self.gallery_path = args.embeddings_path
+        else:
+            self.gallery_path = os.path.join(self.face_recognition_path,'face_recognition_local_gallery_rgba.json')
+        if args.faces_path:
+            self.faces_dir = args.faces_path
+        else:
+            self.faces_dir = os.path.join(self.face_recognition_path,'faces/')
+            
         
 
         self.app_callback = app_callback
@@ -139,11 +111,11 @@ class GStreamerFaceRecognitionApp(GStreamerApp):
         # Set the process title
         setproctitle.setproctitle("Hailo Face Recognition App")
 
-        if not(args.save_faces):
+        if not(args.training_mode):
             self.create_pipeline()
 
     def get_pipeline_string(self):
-        if(self.video_source.endswith('example.mp4')):
+        if not self.video_source:
             self.video_source = os.path.join(self.resources_path, 'face_recognition.mp4')
         source_pipeline = SOURCE_PIPELINE(self.video_source, self.video_width, self.video_height)
         
@@ -191,11 +163,10 @@ class GStreamerFaceRecognitionApp(GStreamerApp):
                             f'queue name=hailo_post_draw leaky=no max-size-buffers=30 max-size-bytes=0 max-size-time=0 ! '
                             f'videoconvert n-threads=4 qos=false name=display_videoconvert qos=false ! '
                             f'queue name=hailo_display_q_0 leaky=no max-size-buffers=30 max-size-bytes=0 max-size-time=0 ! '
-                            f'fpsdisplaysink video-sink=xvimagesink name=hailo_display sync=false text-overlay=false')
+                            f'fpsdisplaysink video-sink=xvimagesink name=hailo_display sync={self.sync} text-overlay={self.show_fps}')
         
-        if self.args.save_faces:
-            print(source_pipeline)
-            source_pipeline = (f"multifilesrc location={self.faces_dir}{CURR} loop=true num-buffers=30 ! "
+        if self.args.training_mode:
+            source_pipeline = (f"multifilesrc location={self.faces_dir}{self.current_file} loop=true num-buffers=30 ! "
                                f"decodebin ! videoconvert n-threads=4 qos=false ! video/x-raw, format=RGB, pixel-aspect-ratio=1/1 ")
             
             detection_pipeline_wrapper = detection_pipeline
@@ -215,30 +186,23 @@ class GStreamerFaceRecognitionApp(GStreamerApp):
             f'{user_callback_pipeline} ! '
             f'{display_pipeline}'
         )
-        if not self.args.save_faces:
+        if not self.args.training_mode:
             print(pipeline_string)
         return pipeline_string
 
-if __name__ == "__main__":
-    # Create an instance of the user app callback class
-    user_data = app_callback_class()
-    app_callback = dummy_callback
-    app = GStreamerFaceRecognitionApp(app_callback, user_data)
-    print(app.args)
-    if not app.args.save_faces:
-        app.run()
-    else:
-        files = get_files_in_directory(os.path.join(app.resources_path, 'faces/'))
-        face_embeddings_file_path = os.path.join(app.resources_path, 'face_recognition_local_gallery_rgba.json')
+
+    def run_training(self):
+        files = self.get_files_in_directory()
         Gst.init(None)
-        delete_file_if_exists(face_embeddings_file_path)
+        self.delete_file_if_exists()
         if files:
             print(f"Found {len(files)} files:")
-            for file in files:
-                CURR = file
+            for i, file in enumerate(files):
+                self.current_file = file
                 try:
                     # Generate the pipeline string
-                    pipeline_string = app.get_pipeline_string()
+                    pipeline_string = self.get_pipeline_string()
+                    
                     # Create the GStreamer pipeline
                     pipeline = Gst.parse_launch(pipeline_string)
                     
@@ -246,7 +210,7 @@ if __name__ == "__main__":
                     print(f"Saving embeddings for: {file}")
                     pipeline.set_state(Gst.State.PLAYING)
                     
-                    # Wait for processing to complete (adjust as needed)
+                    # Wait for processing to complete
                     time.sleep(1)
                     
                 except Exception as e:
@@ -256,10 +220,63 @@ if __name__ == "__main__":
                     if pipeline:
                         pipeline.set_state(Gst.State.NULL)
                         
-            with open(face_embeddings_file_path, 'r') as file_json:
-                data = json.load(file_json)
-                for i, file in enumerate(files):
-                    data[i]['FaceRecognition']['Name'] = remove_extension(file)
-            with open(face_embeddings_file_path, 'w') as file:
-                json.dump(data, file, indent=4)   
+                with open(self.gallery_path, 'r') as file_json:
+                    data = json.load(file_json)
+                    data[i]['FaceRecognition']['Name'] = self.remove_extension(file)
+                with open(self.gallery_path, 'w') as file:
+                    json.dump(data, file, indent=4)   
+    
+    def get_files_in_directory(self):
+        """
+        Get all files from the specified directory (non-recursive).
+
+        :param directory: Path to the directory to search.
+        :return: List of file paths.
+        """
+        try:
+            # List all files in the directory
+            files = [file for file in os.listdir(self.faces_dir) if os.path.isfile(os.path.join(self.faces_dir, file))]
+            return files
+        except FileNotFoundError:
+            print(f"Error: Directory '{self.faces_dir}' not found.")
+            return []
+        except PermissionError:
+            print(f"Error: Permission denied for directory '{self.faces_dir}'.")
+            return []
+
+
+    def remove_extension(self, filename):
+        """
+        Remove the extension from a file name.
+
+        :param filename: The file name with extension.
+        :return: The file name without the extension.
+        """
+        return os.path.splitext(filename)[0]
+
+
+    def delete_file_if_exists(self):
+        """
+        Delete a file if it exists.
+
+        :param file_path: Path to the file to delete.
+        """
+        try:
+            if os.path.exists(self.gallery_path):
+                os.remove(self.gallery_path)
+        except Exception as e:
+            print(f"An unexpected error occurred: {e}")
+
+
+                
+if __name__ == "__main__":
+    # Create an instance of the user app callback class
+    user_data = app_callback_class()
+    app_callback = dummy_callback
+    app = GStreamerFaceRecognitionApp(app_callback, user_data)
+
+    if not app.args.training_mode:
+        app.run()
+    else:
+        app.run_training()
             

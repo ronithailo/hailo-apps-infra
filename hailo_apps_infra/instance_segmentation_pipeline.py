@@ -82,6 +82,8 @@ class GStreamerInstanceSegmentationApp(GStreamerApp):
         self.create_pipeline()
 
     def get_pipeline_string(self):
+        if not self.video_source:
+            self.video_source = self.default_video
         source_pipeline = SOURCE_PIPELINE(video_source=self.video_source, video_width=self.video_width, video_height=self.video_height)
         infer_pipeline = INFERENCE_PIPELINE(
             hef_path=self.hef_path,
