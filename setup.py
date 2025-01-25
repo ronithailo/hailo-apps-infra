@@ -49,6 +49,15 @@ def get_downloaded_files():
             downloaded_files.append(relative_path)
     return downloaded_files
 
+def find_package_data(package_dir):
+    """Recursively collect all files in the package directory."""
+    paths = []
+    for root, _, files in os.walk(package_dir):
+        for file in files:
+            full_path = os.path.relpath(os.path.join(root, file), package_dir)
+            paths.append(full_path)
+    return paths
+
 def main():
     check_hailo_package()
 
@@ -73,7 +82,7 @@ def main():
         install_requires=requirements,
         packages=find_packages(exclude=["tests", "docs"]),
         package_data={
-            'hailo_apps_infra': ['*.json', '*.sh', '*.cpp', '*.hpp', '*.pc'] + get_downloaded_files(),
+            'hailo_apps_infra': find_package_data('hailo_apps_infra') + get_downloaded_files(),
         },
         include_package_data=True,
         entry_points={
