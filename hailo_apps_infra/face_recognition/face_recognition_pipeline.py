@@ -42,7 +42,7 @@ from hailo_apps_infra.gstreamer_app import (
 # This class inherits from the hailo_rpi_common.GStreamerApp class
 class GStreamerFaceRecognitionApp(GStreamerApp):
     def __init__(self, app_callback, user_data):
-        parser = get_default_parser()
+        parser = get_default_parser(['hef-path'])
         parser.add_argument(
             "--training-mode",
             default=False,
